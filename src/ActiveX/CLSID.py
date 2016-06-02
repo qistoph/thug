@@ -139,7 +139,6 @@ CLSID = [
                             'type'          : 1,
                             'Type'          : 1,
                             'Mode'          : 3,
-                            'Position'      : 0,
                             'position'      : 0,
                             '_files'        : dict(),
                             '_current'      : None},
@@ -147,7 +146,6 @@ CLSID = [
             'methods'   : {
                             'Open'          : AdodbStream.open,
                             'Write'         : AdodbStream.Write,
-                            'SaveToFile'    : AdodbStream.SaveToFile,
                             'SaveTofile'    : AdodbStream.SaveToFile,
                             'LoadFromFile'  : AdodbStream.LoadFromFile,
                             'ReadText'      : AdodbStream.ReadText,
@@ -650,7 +648,7 @@ CLSID = [
         # MicrosoftXMLHTTP
         {
             'id'        : (),
-            'name'      : ( 'msxml2.xmlhttp', 'microsoft.xmlhttp', 'msxml2.xmlhttp.6.0'),
+            'name'      : ( 'msxml2.xmlhttp', 'microsoft.xmlhttp', 'msxml2.xmlhttp.6.0', 'winhttp.winhttprequest.5.1'),
             'attrs'     : {
                             'bstrMethod'            : '',
                             'bstrUrl'               : '',
