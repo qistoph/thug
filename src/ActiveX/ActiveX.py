@@ -18,6 +18,8 @@
 
 #import new
 import logging
+import traceback
+import PyV8
 from .CLSID import CLSID
 
 log = logging.getLogger("Thug")
@@ -131,6 +133,38 @@ class _ActiveXObject(object):
         if name in self.funcattrs:
             self.funcattrs[name](value)
 
+    def __getattribute__(self, name):
+        #log.warning("__getattribute__(self, %s)" % name)
+        try:
+            method = super(_ActiveXObject, self).__getattribute__(name)
+        except AttributeError:
+            method = None
+            for key, value in self.__dict__.items():
+                if(key.lower() == name.lower()):
+                    method = value
+
+            if method is None:
+                log.warning("Unknown ActiveX Object (%s) attribute: %s" % (self.cls, name, ))
+                raise
+
+        try:
+            if name != '__dict__' and hasattr(method, '__self__'):
+            # Prevent recursion overflow
+                #log.warning('method: %s' % method)
+                #log.warning('isinstance(method, ActiveX): %s' % isinstance(method.__self__, _ActiveXObject))
+                return ActiveXMethod(method)
+                #return method
+                #if(isinstance(method.__self__, _ActiveXObject)):
+                   #result = method(self)
+                   #log.warning('Called method, result: %s' % result)
+                   #return result
+        except Exception as e:
+            print "Exception caught in ActiveX/ActiveX.py:"
+            print e
+            raise e
+
+        return method
+        
     def __getattr__(self, name):
         for key, value in self.__dict__.items():
             if key.lower() == name.lower():
@@ -204,3 +238,41 @@ def register_object(s, clsid):
             s.__dict__['funcattrs'] = dict()
 
         s.__dict__['funcattrs'][attr_name] = methods[attr_value]
+
+class ActiveXMethod():
+    def __init__(self, method):
+        log.warning('ActiveXMethod instantiated for %s' % method)
+        self.method = method
+
+    def __call__(self, *args):
+        #log.warning('ActiveXMethod %s called with %s' % (self.method, args))
+        log.warning('ActiveXMethod %s called' % (self.method))
+        result = self.method(*args)
+        #log.warning('ActiveXMethod result: %s' % result)
+        return result
+
+    def __name__(self):
+        log.warning('ActiveXMethod.__name__');
+        return 'ActiveXMethod {%s}' % self.method
+
+    def __repr__(self):
+        log.warning('ActiveXMethod %s __repr__ called' % self.method)
+        return super(ActiveXMethod, self).__repr__()
+
+    def __str__(self):
+        log.warning('ActiveXMethod %s __str__ called' % self.method)
+        return self.method()
+        #return super(ActiveXMethod, self).__str__()
+
+    def __getattribute__(self, name):
+        log.warning("ActiveXMethod.__getattribute__(self, %s)" % name)
+        try:
+            method = super(ActiveXObject, self).__getattribute__(name)
+            log.warning('found in super')
+        except AttributeError:
+            for key, value in self.__dict__.items():
+                if(key.lower() == name.lower()):
+                    method = value
+
+            log.warning("Unknown (%s) attribute: %s" % (self.cls, name, ))
+            raise
