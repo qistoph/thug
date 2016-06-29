@@ -14,11 +14,11 @@ from Magic.Magic import Magic
 log = logging.getLogger("Thug")
 
 def open(self): #pylint:disable=redefined-builtin
-    log.ThugLogging.add_behavior_warn("[Adodb.Stream ActiveX] open")
+    #log.ThugLogging.add_behavior_warn("[Adodb.Stream ActiveX] open")
     self.fobject = BytesIO()
 
 def _Write(self, dat):
-    log.ThugLogging.add_behavior_warn('[Adodb.Stream ActiveX] Writing with charset: %s' % self.Charset)
+    log.debug('[Adodb.Stream ActiveX] Writing with charset: %s' % self.Charset)
 
     dat = unicode(dat, 'utf-8')
     if self.Charset == '437':
@@ -29,11 +29,11 @@ def _Write(self, dat):
     self.fobject.write(dat)
 
 def Write(self, s):
-    log.ThugLogging.add_behavior_warn("[Adodb.Stream ActiveX] Write")
+    log.debug("[Adodb.Stream ActiveX] Write")
     _Write(self, s)
 
 def WriteText(self, dat, opt = 0):
-    log.ThugLogging.add_behavior_warn("[Adodb.Stream ActiveX] WriteText (..., %d)" % (opt))
+    log.debug("[Adodb.Stream ActiveX] WriteText (..., %d)" % (opt))
     _Write(self, dat)
 
 def SaveToFile(self, filename, opt = 0):
@@ -83,5 +83,5 @@ def ReadText(self, NumChars = -1):
     return data[:NumChars - 1]
 
 def Close(self):
-    log.ThugLogging.add_behavior_warn("[Adodb.Stream ActiveX] Close")
+    log.debug("[Adodb.Stream ActiveX] Close")
     self.fobject.close()
