@@ -21,6 +21,8 @@ import logging
 import traceback
 import PyV8
 from .CLSID import CLSID
+import inspect
+import traceback
 
 log = logging.getLogger("Thug")
 
@@ -115,7 +117,7 @@ class _ActiveXObject(object):
         for method_name, method in obj['methods'].items():
             #_method = new.instancemethod(method, self, _ActiveXObject)
             _method = method.__get__(self, _ActiveXObject)
-            setattr(self, method_name, _method)
+            setattr(self, "@@%s" % (method_name, ), _method)
             methods[method] = _method
 
         for attr_name, attr_value in obj['attrs'].items():
@@ -166,8 +168,19 @@ class _ActiveXObject(object):
         return method
         
     def __getattr__(self, name):
+        #print "%s . %s" % (self.cls, name)
         for key, value in self.__dict__.items():
+            key = key[2:] if key.startswith('@@') else key
             if key.lower() == name.lower():
+                if inspect.isroutine(value):
+                    args = inspect.getargspec(value)
+                    #print args
+                    _args = len(args.args) - 1
+                    _defaults = len(args.defaults) if args.defaults else 0
+                    #TODO determine suitable methods to proxy through ActiveXMethod
+                    if self.cls.lower() == "adodb.stream" and name.lower() == "readtext":
+                        #return value
+                        return ActiveXMethod(value)
                 return value
 
         if name not in ('__watchpoints__'):
@@ -239,40 +252,82 @@ def register_object(s, clsid):
 
         s.__dict__['funcattrs'][attr_name] = methods[attr_value]
 
-class ActiveXMethod():
+class ActiveXMethod(object):
     def __init__(self, method):
-        log.warning('ActiveXMethod instantiated for %s' % method)
         self.method = method
+        self.result = None
+        log.debug('ActiveXMethod instantiated for %s' % (self.desc()))
+
+    def desc(self):
+        return "%s %s" % (self.method.im_self.cls, self.method.im_func.func_name)
+
+    def callResult(self):
+        if self.result is None:
+            self.result = self.method()
+        return self.result
 
     def __call__(self, *args):
-        #log.warning('ActiveXMethod %s called with %s' % (self.method, args))
-        log.warning('ActiveXMethod %s called' % (self.method))
+        log.debug('ActiveXMethod %s called' % self.desc())
+        #print "type: %s" % (type(self.method.im_class))
+        #print dir(self.method)
         result = self.method(*args)
-        #log.warning('ActiveXMethod result: %s' % result)
         return result
 
     def __name__(self):
-        log.warning('ActiveXMethod.__name__');
-        return 'ActiveXMethod {%s}' % self.method
+        log.debug('ActiveXMethod %s __name__ called' % self.desc());
+        return 'ActiveXMethod {%s}' % self.desc()
 
     def __repr__(self):
-        log.warning('ActiveXMethod %s __repr__ called' % self.method)
+        log.debug('ActiveXMethod %s __repr__ called' % self.desc())
         return super(ActiveXMethod, self).__repr__()
 
     def __str__(self):
-        log.warning('ActiveXMethod %s __str__ called' % self.method)
-        return self.method()
-        #return super(ActiveXMethod, self).__str__()
+        log.debug('ActiveXMethod %s __str__ called' % self.desc())
+        return self.callResult()
 
-    def __getattribute__(self, name):
-        log.warning("ActiveXMethod.__getattribute__(self, %s)" % name)
+    def toString(self):
+        log.debug('ActiveXMethod %s toString called' % self.desc())
+        return self.callResult()
+
+    def valueOf(self):
+        log.debug('ActiveXMethod %s valueOf called' % self.desc())
+        return self.callResult()
+
+    def __getattr__(self, name):
+        log.debug("ActiveXMethod.__getattr__(%s, %s)" % (self.desc(), name))
         try:
-            method = super(ActiveXObject, self).__getattribute__(name)
-            log.warning('found in super')
+            method = super(self.__class__, self).__getattribute__(name)
         except AttributeError:
-            for key, value in self.__dict__.items():
-                if(key.lower() == name.lower()):
-                    method = value
+            result = self.callResult()
+            if type(result) is str:
+                if name.lower() == 'length':
+                    return len(result)
+                #elif name.lower() == 'charcodeat':
+                    #TODO hmm, how to get a reference here to the javascript instance method charCodeAt...?
+                    #return None
+                else:
+                    log.warning("Unhandled attribute (%s) for type (%s) in ActiveXMethod (%s)" % (name, type(result), self.desc()))
+            else:
+                log.warning("Unhandled type (%s) in ActiveXMethod (%s) for attribute %s" % (type(result), self.desc(), name))
 
-            log.warning("Unknown (%s) attribute: %s" % (self.cls, name, ))
-            raise
+            #TODO: implement 'all' possible attributes ...
+            #      or rather, find a generic solution for attributes
+            #      If the result doesn't have requested attribute, maybe raise AttributeError?
+
+            return None
+
+    def __getitem__(self, index):
+        log.debug("ActiveXMethod.__getitem__(%s, %d)" % (self.desc(), index))
+        result = self.callResult()
+        return result[index];
+
+    def __len__(self):
+        result = self.callResult()
+        return len(result)
+
+    #def __getattribute__(self, name):
+        #log.debug("__getattribute__(%s)" % (name))
+        #try:
+            #return object.__getattribute__(self, name)
+        #except AttributeError:
+            #log.debug("!!! Unknown attribute %s" % name)
