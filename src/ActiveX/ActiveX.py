@@ -135,38 +135,6 @@ class _ActiveXObject(object):
         if name in self.funcattrs:
             self.funcattrs[name](value)
 
-    def __getattribute__(self, name):
-        #log.warning("__getattribute__(self, %s)" % name)
-        try:
-            method = super(_ActiveXObject, self).__getattribute__(name)
-        except AttributeError:
-            method = None
-            for key, value in self.__dict__.items():
-                if(key.lower() == name.lower()):
-                    method = value
-
-            if method is None:
-                log.warning("Unknown ActiveX Object (%s) attribute: %s" % (self.cls, name, ))
-                raise
-
-        try:
-            if name != '__dict__' and hasattr(method, '__self__'):
-            # Prevent recursion overflow
-                #log.warning('method: %s' % method)
-                #log.warning('isinstance(method, ActiveX): %s' % isinstance(method.__self__, _ActiveXObject))
-                return ActiveXMethod(method)
-                #return method
-                #if(isinstance(method.__self__, _ActiveXObject)):
-                   #result = method(self)
-                   #log.warning('Called method, result: %s' % result)
-                   #return result
-        except Exception as e:
-            print "Exception caught in ActiveX/ActiveX.py:"
-            print e
-            raise e
-
-        return method
-        
     def __getattr__(self, name):
         #print "%s . %s" % (self.cls, name)
         for key, value in self.__dict__.items():
@@ -256,6 +224,7 @@ class ActiveXMethod(object):
     def __init__(self, method):
         self.method = method
         self.result = None
+        self.ctxt = PyV8.JSContext()
         log.debug('ActiveXMethod instantiated for %s' % (self.desc()))
 
     def desc(self):
@@ -302,10 +271,11 @@ class ActiveXMethod(object):
             if type(result) is str:
                 if name.lower() == 'length':
                     return len(result)
-                #elif name.lower() == 'charcodeat':
-                    #TODO hmm, how to get a reference here to the javascript instance method charCodeAt...?
-                    #return None
                 else:
+                    res = self.ctxt.eval("\"%s\".%s" % (result, name))
+                    log.warning("Result from PyV8: %s" % res)
+                    if res is not None:
+                        return res
                     log.warning("Unhandled attribute (%s) for type (%s) in ActiveXMethod (%s)" % (name, type(result), self.desc()))
             else:
                 log.warning("Unhandled type (%s) in ActiveXMethod (%s) for attribute %s" % (type(result), self.desc(), name))
