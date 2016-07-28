@@ -170,3 +170,7 @@ def CreateShortcut(self, strPathname):
     obj = CreateObject(self, "wscript.shortcut")
     obj.FullName = strPathname
     return obj
+
+def ScriptFullName(self,):
+    log.ThugLogging.add_behavior_warn("[WScript.Shell ActiveX] ScriptFullName")
+    return "C:\\Temp\\4.jse"

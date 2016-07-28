@@ -995,6 +995,7 @@ CLSID = [
                             'Close'             : ScriptingFileSystemObject.Close,
                             'BuildPath'         : ScriptingFileSystemObject.BuildPath,
                             'GetSpecialFolder'  : ScriptingFileSystemObject.GetSpecialFolder,
+                            'GetFolder'         : ScriptingFileSystemObject.GetFolder,
                           },
         },
 
@@ -1380,6 +1381,7 @@ CLSID = [
                             'toString'                  : WScriptShell.toString,
                             'SpecialFolders'            : WScriptShell.SpecialFolders,
                             'CreateShortcut'            : WScriptShell.CreateShortcut,
+                            'ScriptFullName'            : WScriptShell.ScriptFullName,
                           }
         },
 

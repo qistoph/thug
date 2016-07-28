@@ -27,3 +27,8 @@ def BuildPath(self, arg0, arg1):
 def GetSpecialFolder(self, arg):
     log.ThugLogging.add_behavior_warn('[Script.FileSystemObject ActiveX] GetSpecialFolder(%s)' % (arg, ))
     return '%TEMP%'
+
+def GetFolder(self, arg):
+    #TODO return right value
+    log.ThugLogging.add_behavior_warn('[Script.FileSystemObject ActiveX] GetFolder(%s)' % (arg, ))
+    return '%TEMP%'
