@@ -19,6 +19,7 @@
 #import new
 import logging
 from .CLSID import CLSID
+import inspect
 
 log = logging.getLogger("Thug")
 
@@ -113,7 +114,7 @@ class _ActiveXObject(object):
         for method_name, method in obj['methods'].items():
             #_method = new.instancemethod(method, self, _ActiveXObject)
             _method = method.__get__(self, _ActiveXObject)
-            setattr(self, method_name, _method)
+            setattr(self, "@@%s" % (method_name, ), _method)
             methods[method] = _method
 
         for attr_name, attr_value in obj['attrs'].items():
@@ -133,7 +134,11 @@ class _ActiveXObject(object):
 
     def __getattr__(self, name):
         for key, value in self.__dict__.items():
+            key = key[2:] if key.startswith('@@') else key
             if key.lower() == name.lower():
+                if inspect.isroutine(value) and name.lower() == "readtext" and self.cls.lower() == "adodb.stream":
+                    log.info("Returning result for %s %s" % (self.cls, name))
+                    return value()
                 return value
 
         if name not in ('__watchpoints__'):
